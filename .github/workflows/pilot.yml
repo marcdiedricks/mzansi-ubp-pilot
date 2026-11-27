@@ -1,0 +1,33 @@
+name: Synthetic governance pilot
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  governance-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate synthetic fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          def unique(pairs):
+              result = {}
+              for key, value in pairs:
+                  if key in result:
+                      raise ValueError('Duplicate key')
+                  result[key] = value
+              return result
+          with open('governance.json') as f:
+              record = json.load(f, object_pairs_hook=unique)
+          if record != {'synthetic': True, 'approved': True, 'blockers': []} or record.get('synthetic') is not True or record.get('approved') is not True:
+              raise SystemExit('HOLD: synthetic governance check failed')
+          print('PASS: synthetic fixture accepted')
+          PY
